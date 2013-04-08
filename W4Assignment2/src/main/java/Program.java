@@ -1,97 +1,101 @@
 public class Program {
 
-	private Philosopher[] guests;
+    private Philosopher[] guests;
 
-	private class Chopstick {
-		boolean inUse = false;
+    private class Chopstick {
+        boolean inUse = false;
 
-		synchronized public void pickUpChopstick(int id, String name)
-				throws Exception {
-			if (inUse)
-				wait();
-			System.out.println(String.format(
-					"Philosopher %d picks up %s chopstick.", id, name));
-			inUse = true;
-		}
+        private volatile Object monitor = new Object();
 
-		synchronized void setDownChopstick(int id, String name) {
-			if (inUse) {
-				System.out.println(String.format(
-						"Philosopher %d sets down %s chopstick.", id, name));
-				inUse = false;
-				notify();
-			}
-		}
-	};
+        public boolean pickUpChopstick(int id, String name) throws Exception {
+            synchronized (monitor) {
+                if (!inUse) {
+                    System.out.println(String.format("Philosopher %d picks up %s chopstick.", id, name));
+                    inUse = true;
+                    return true;
+                }
+                return false;
+            }
+        }
 
-	private class Philosopher extends Thread {
-		private int bitesLeft = 5;
-		private int id = -1;
-		private Chopstick left;
-		private Chopstick right;
+        synchronized void setDownChopstick(int id, String name) {
+            synchronized (monitor) {
+                if (inUse) {
+                    System.out.println(String.format("Philosopher %d sets down %s chopstick.", id, name));
+                    inUse = false;
+                }
+            }
+        }
+    };
 
-		Philosopher(int id, Chopstick left, Chopstick right) {
-			this.id = id;
-			this.left = left;
-			this.right = right;
-		}
+    private class Philosopher extends Thread {
+        private int bitesLeft = 5;
+        private int id = -1;
+        private Chopstick left;
+        private Chopstick right;
 
-		public Chopstick getRightChopstick()
-		{
-			return right;
-		}
-		
-		public void run() {
-			while (bitesLeft > 0) {
-				try {
-					left.pickUpChopstick(id, "left");
-					right.pickUpChopstick(id, "right");
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-				System.out.println(String.format("Philosopher %d eats.", id));
-				bitesLeft--;
-				right.setDownChopstick(id, "right");
-				left.setDownChopstick(id, "left");
-			}
-		}
+        Philosopher(int id, Chopstick left, Chopstick right) {
+            this.id = id;
+            this.left = left;
+            this.right = right;
+        }
 
-		public void setLeftChopstick(Chopstick leftChopstick) {
-			this.left = leftChopstick;
-		}
-	};
+        public Chopstick getRightChopstick() {
+            return right;
+        }
 
-	public static void main(String[] args) throws Exception {
+        public void run() {
+            while (bitesLeft > 0) {
+                try {
+                    if (left.pickUpChopstick(id, "left") && right.pickUpChopstick(id, "right")) {
+                        System.out.println(String.format("Philosopher %d eats.", id));
+                        bitesLeft--;
+                    }
+                    right.setDownChopstick(id, "right");
+                    left.setDownChopstick(id, "left");
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
 
-		System.out.println("Dinner is starting!");
-		System.out.println("");
+        public void setLeftChopstick(Chopstick leftChopstick) {
+            this.left = leftChopstick;
+        }
+    };
 
-		Program dinner = new Program();
-		dinner.serve(5);
-		dinner.cleanup();
+    public static void main(String[] args) throws Exception {
 
-		System.out.println("Dinner is over!");
-	}
+        System.out.println("Dinner is starting!");
+        System.out.println("");
 
-	private void cleanup() throws Exception {
-		for (int i = 0; i < guests.length; i++)
-			guests[i].join();
-	}
+        Program dinner = new Program();
+        dinner.serve(5);
+        dinner.cleanup();
 
-	private void serve(int guestCount) throws Exception {
-		guests = new Philosopher[guestCount];
-		Chopstick left = new Chopstick();
-		for (int i = 0; i < guestCount; i++) {
-			Chopstick right = new Chopstick();
-			guests[i] = new Philosopher(i + 1, left, right);
-			left = right;
-		}
-		//Setup the last philosopher's left chopstick with the first one's right chopstick
-		int lastGuest = guestCount-1;
-		int firstGuest = 0;		
-		guests[lastGuest].setLeftChopstick ( guests[firstGuest].getRightChopstick() );
-		
-		for (int i=0; i< guestCount; i++)
-			guests[i].start();
-	}
+        System.out.println("Dinner is over!");
+    }
+
+    private void cleanup() throws Exception {
+        for (int i = 0; i < guests.length; i++)
+            guests[i].join();
+    }
+
+    private void serve(int guestCount) throws Exception {
+        guests = new Philosopher[guestCount];
+        Chopstick left = new Chopstick();
+        for (int i = 0; i < guestCount; i++) {
+            Chopstick right = new Chopstick();
+            guests[i] = new Philosopher(i + 1, left, right);
+            left = right;
+        }
+        // Setup the last philosopher's left chopstick with the first one's
+        // right chopstick
+        int lastGuest = guestCount - 1;
+        int firstGuest = 0;
+        guests[lastGuest].setLeftChopstick(guests[firstGuest].getRightChopstick());
+
+        for (int i = 0; i < guestCount; i++)
+            guests[i].start();
+    }
 }
