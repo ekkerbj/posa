@@ -1,4 +1,4 @@
-Week 4 Assignment 2
+Week 5 Assignment 2
 ===================
 
 The Dining Philosophers problem is as follows:  A group of philosophers are sitting down at a circular table with food in the middle of the table, and a chopstick on each side of each philosopher.  At any time, they are either thinking or eating.  In order to eat, they need to have two chopsticks.  If the chopstick to their left or right is currently being used, they must wait for the other philosopher to put it down.  You may notice that if each philosopher decides to eat at the same time, and each picks up the chopstick to his or her right, he or she will not be able to eat, because everyone is waiting for the chopstick on their left.  This situation is called “deadlock”.  In this assignment, you will use the Monitor Object pattern in an algorithm to prevent deadlock.
