@@ -15,15 +15,15 @@ import org.jboss.netty.channel.socket.oio.OioServerSocketChannelFactory;
 
 public class Program {
 
-    private static final class HandlersFactory implements ChannelPipelineFactory {
+    private static final class EchoServerPipelineFactory implements ChannelPipelineFactory {
         public ChannelPipeline getPipeline() throws Exception {
             ChannelPipeline p = Channels.pipeline();
-            p.addLast("echo", new EchoServerHandlerAndAcceptor());
+            p.addLast("echo", new EchoServerHandler());
             return p;
         }
     };
 
-    private static final class EchoServerHandlerAndAcceptor extends SimpleChannelUpstreamHandler {
+    private static final class EchoServerHandler extends SimpleChannelUpstreamHandler {
         @Override
         public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) throws Exception {
             e.getChannel().write(e.getMessage());
@@ -60,8 +60,8 @@ public class Program {
         ServerBootstrap server = new ServerBootstrap(acceptorFactory);
         
         //The pipelines string together handlers, we set a factory to create pipelines( handlers ) to handle events.
-        //For Netty, the handler acts partially in the acceptor role as well with channel setup.
-        server.setPipelineFactory(new HandlersFactory());
+        //For Netty is using the reactor pattern to react to data coming in from the open connections.
+        server.setPipelineFactory(new EchoServerPipelineFactory());
  
         server.bind(new InetSocketAddress(port));        
     }
